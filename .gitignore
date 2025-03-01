@@ -39,3 +39,6 @@ app-example
 
 # env files
 .env*
+
+# additional files
+docs/*

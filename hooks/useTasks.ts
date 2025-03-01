@@ -40,17 +40,34 @@ export function useTasks() {
     title: string;
     description: string;
     due_date: Date | null;
+    parent_id?: string | null;
   }) => {
     try {
-      const { error } = await supabase.from('tasks').insert({
-        user_id: session?.user.id,
-        title: taskData.title,
-        description: taskData.description || null,
-        due_date: taskData.due_date?.toISOString() || null,
-        status: 'pending',
-      });
+      const { data: newTask, error } = await supabase
+        .from('tasks')
+        .insert({
+          user_id: session?.user.id,
+          title: taskData.title,
+          description: taskData.description || null,
+          due_date: taskData.due_date?.toISOString() || null,
+          status: 'pending',
+          parent_id: taskData.parent_id || null,
+          has_subtasks: false,
+          order: 0,
+          depth: taskData.parent_id ? 1 : 0,
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+
+      if (taskData.parent_id) {
+        await supabase
+          .from('tasks')
+          .update({ has_subtasks: true })
+          .eq('id', taskData.parent_id);
+      }
+
       await fetchTasks();
     } catch (error: any) {
       Alert.alert('Error', error.message);

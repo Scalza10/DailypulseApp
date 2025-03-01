@@ -15,6 +15,7 @@ export default function TasksScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [parentTask, setParentTask] = useState<Task | null>(null);
   
   const { 
     loading, 
@@ -44,9 +45,14 @@ export default function TasksScreen() {
           onStatusChange={handleStatusChange}
           onTaskSelect={(task) => {
             setSelectedTask(task);
+            setParentTask(null);
             setModalVisible(true);
           }}
           onDeleteTask={handleDeleteTask}
+          onAddSubtask={(task) => {
+            setParentTask(task);
+            setModalVisible(true);
+          }}
           loading={loading}
           selectedFilter={selectedFilter}
         />
@@ -65,17 +71,25 @@ export default function TasksScreen() {
           onClose={() => {
             setModalVisible(false);
             setSelectedTask(null);
+            setParentTask(null);
           }}
-          onSave={selectedTask ? handleEditTask : handleCreateTask}
-          initialTask={
-            selectedTask
-              ? {
-                  title: selectedTask.title,
-                  description: selectedTask.description || '',
-                  due_date: selectedTask.due_date,
-                }
-              : undefined
-          }
+          onSave={async (taskData) => {
+            if (selectedTask) {
+              await handleEditTask({
+                id: selectedTask.id,
+                ...taskData
+              });
+            } else {
+              await handleCreateTask(taskData);
+            }
+          }}
+          initialTask={selectedTask ? {
+            title: selectedTask.title,
+            description: selectedTask.description || '',
+            due_date: selectedTask.due_date,
+          } : undefined}
+          parentTask={parentTask}
+          isSubtask={!!parentTask}
         />
       </SafeAreaView>
     </GestureHandlerRootView>

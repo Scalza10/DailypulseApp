@@ -11,9 +11,20 @@ interface TaskItemProps {
   onStatusChange: (taskId: string, newStatus: Task['status']) => Promise<void>;
   onSelect: (task: Task) => void;
   onDelete: (taskId: string) => void;
+  depth?: number;
+  isSubtask?: boolean;
+  onAddSubtask?: (parentTask: Task) => void;
 }
 
-export function TaskItem({ task, onStatusChange, onSelect, onDelete }: TaskItemProps) {
+export function TaskItem({ 
+  task, 
+  onStatusChange, 
+  onSelect, 
+  onDelete,
+  depth = 0,
+  isSubtask = false,
+  onAddSubtask,
+}: TaskItemProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
@@ -42,7 +53,12 @@ export function TaskItem({ task, onStatusChange, onSelect, onDelete }: TaskItemP
 
   return (
     <Swipeable renderRightActions={renderRightActions}>
-      <View style={[styles.taskItem, isDark && styles.taskItemDark]}>
+      <View style={[
+        styles.taskItem, 
+        isDark && styles.taskItemDark,
+        isSubtask && styles.subtaskItem,
+        { marginLeft: depth * 20 }
+      ]}>
         <TouchableOpacity
           style={styles.statusButton}
           onPress={() => {
@@ -56,15 +72,24 @@ export function TaskItem({ task, onStatusChange, onSelect, onDelete }: TaskItemP
           />
         </TouchableOpacity>
         <TouchableOpacity style={styles.taskContent} onPress={() => onSelect(task)}>
-          <ThemedText
-            style={[
-              styles.taskTitle,
-              isDark && styles.taskTitleDark,
-              task.status === 'completed' && styles.completedTask,
-              task.status === 'completed' && isDark && styles.completedTaskDark,
-            ]}>
-            {task.title}
-          </ThemedText>
+          <View style={styles.titleContainer}>
+            <ThemedText
+              style={[
+                styles.taskTitle,
+                isDark && styles.taskTitleDark,
+                task.status === 'completed' && styles.completedTask,
+                task.status === 'completed' && isDark && styles.completedTaskDark,
+              ]}>
+              {task.title}
+            </ThemedText>
+            {task.has_subtasks && (
+              <MaterialIcons 
+                name="subdirectory-arrow-right" 
+                size={20} 
+                color={isDark ? '#6B7280' : '#9CA3AF'} 
+              />
+            )}
+          </View>
           {task.description && (
             <ThemedText style={[styles.taskDescription, isDark && styles.taskDescriptionDark]}>
               {task.description}
@@ -76,18 +101,28 @@ export function TaskItem({ task, onStatusChange, onSelect, onDelete }: TaskItemP
             </ThemedText>
           )}
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.pomodoroButton}
-          onPress={() => router.push({
-            pathname: '/(tabs)/focus',
-            params: { 
-              taskId: task.id,
-              taskTitle: task.title,
-              taskDescription: task.description || ''
-            }
-          })}>
-          <MaterialIcons name="timer" size={24} color="#9333EA" />
-        </TouchableOpacity>
+        <View style={styles.actionsContainer}>
+          <TouchableOpacity 
+            style={styles.pomodoroButton}
+            onPress={() => router.push({
+              pathname: '/(tabs)/focus',
+              params: { 
+                taskId: task.id,
+                taskTitle: task.title,
+                taskDescription: task.description || ''
+              }
+            })}>
+            <MaterialIcons name="timer" size={24} color="#9333EA" />
+          </TouchableOpacity>
+          
+          {!isSubtask && onAddSubtask && (
+            <TouchableOpacity 
+              style={styles.subtaskButton}
+              onPress={() => onAddSubtask(task)}>
+              <MaterialIcons name="add-task" size={24} color="#2563EB" />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     </Swipeable>
   );
@@ -162,6 +197,23 @@ const styles = StyleSheet.create({
   pomodoroButton: {
     padding: 8,
     marginLeft: 8,
+    justifyContent: 'center',
+  },
+  subtaskItem: {
+    borderLeftWidth: 1,
+    borderLeftColor: '#E5E7EB',
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  actionsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  subtaskButton: {
+    padding: 8,
     justifyContent: 'center',
   },
 }); 

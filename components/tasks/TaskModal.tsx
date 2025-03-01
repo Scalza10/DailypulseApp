@@ -13,6 +13,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { MaterialIcons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
+import { Task } from '@/types/database';
 
 type TaskModalProps = {
   visible: boolean;
@@ -21,12 +22,15 @@ type TaskModalProps = {
     title: string;
     description: string;
     due_date: Date | null;
+    parent_id?: string | null;
   }) => Promise<void>;
   initialTask?: {
     title: string;
     description: string;
     due_date: string | null;
   };
+  parentTask?: Task;
+  isSubtask?: boolean;
 };
 
 export function TaskModal({
@@ -34,6 +38,8 @@ export function TaskModal({
   onClose,
   onSave,
   initialTask,
+  parentTask,
+  isSubtask = false,
 }: TaskModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -48,15 +54,16 @@ export function TaskModal({
     }
   }, [initialTask]);
 
-  const handleSave = async () => {
+  const handleSave = async (task: {
+    title: string;
+    description: string;
+    due_date: Date | null;
+    parent_id?: string | null;
+  }) => {
     if (!title.trim()) {
       return;
     }
-    await onSave({
-      title: title.trim(),
-      description: description.trim(),
-      due_date: dueDate,
-    });
+    await onSave(task);
     handleClose();
   };
 
@@ -75,9 +82,21 @@ export function TaskModal({
       >
         <View style={styles.modalContent}>
           <ScrollView>
-            <ThemedText type="title" style={styles.modalTitle}>
-              {initialTask ? "Edit Task" : "New Task"}
-            </ThemedText>
+            <View style={styles.headerContainer}>
+              <ThemedText type="title" style={styles.modalTitle}>
+                {initialTask 
+                  ? "Edit Task" 
+                  : isSubtask 
+                    ? `New Subtask${parentTask ? ` for "${parentTask.title}"` : ''}`
+                    : "New Task"}
+              </ThemedText>
+              {parentTask && (
+                <View style={styles.parentTaskIndicator}>
+                  <MaterialIcons name="subdirectory-arrow-right" size={20} color="#6B7280" />
+                  <ThemedText style={styles.parentTaskText}>Subtask</ThemedText>
+                </View>
+              )}
+            </View>
 
             <TextInput
               style={styles.input}
@@ -141,10 +160,17 @@ export function TaskModal({
                 styles.saveButton,
                 !title.trim() && styles.saveButtonDisabled,
               ]}
-              onPress={handleSave}
+              onPress={() => handleSave({
+                title,
+                description,
+                due_date: dueDate,
+                parent_id: parentTask?.id || null,
+              })}
               disabled={!title.trim()}
             >
-              <ThemedText style={styles.buttonText}>Save</ThemedText>
+              <ThemedText style={styles.buttonText}>
+                {isSubtask ? 'Add Subtask' : 'Save'}
+              </ThemedText>
             </TouchableOpacity>
           </View>
         </View>
@@ -227,5 +253,18 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "600",
+  },
+  headerContainer: {
+    marginBottom: 20,
+  },
+  parentTaskIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 4,
+  },
+  parentTaskText: {
+    fontSize: 14,
+    color: '#6B7280',
   },
 });

@@ -9,6 +9,7 @@ export interface User {
 export interface Task {
   id: string;
   user_id: string;
+  parent_id: string | null;
   title: string;
   description: string | null;
   status: 'pending' | 'in_progress' | 'completed';
@@ -16,4 +17,7 @@ export interface Task {
   created_at: string;
   updated_at: string;
   ai_metadata: Record<string, any>;
+  has_subtasks: boolean;
+  order: number;
+  depth: number;
 } 
