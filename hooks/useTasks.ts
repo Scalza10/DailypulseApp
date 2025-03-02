@@ -25,7 +25,7 @@ export function useTasks() {
         .from('tasks')
         .select('*')
         .eq('user_id', session?.user.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: true });
 
       if (error) throw error;
       setTasks(data || []);
@@ -193,6 +193,19 @@ export function useTasks() {
         parent.subtasks?.push(enhancedTask);
       } else {
         rootTasks.push(enhancedTask);
+      }
+    });
+
+    // Sort root tasks and subtasks by creation date
+    rootTasks.sort((a, b) => 
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+
+    rootTasks.forEach(task => {
+      if (task.subtasks) {
+        task.subtasks.sort((a, b) => 
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
       }
     });
 

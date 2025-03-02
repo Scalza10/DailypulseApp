@@ -12,9 +12,12 @@ export function TaskSummary({ tasks }: TaskSummaryProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
-  // Filter and sort active tasks
+  // Filter and sort active tasks - exclude subtasks
   const activeTasks = tasks
-    .filter((task) => task.status === 'pending' || task.status === 'in_progress')
+    .filter((task) => 
+      // Only include parent tasks (no parent_id) that are active
+      !task.parent_id && (task.status === 'pending' || task.status === 'in_progress')
+    )
     .sort((a, b) => {
       // First sort by status (in_progress first)
       if (a.status === 'in_progress' && b.status === 'pending') return -1;

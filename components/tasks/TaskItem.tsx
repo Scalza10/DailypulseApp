@@ -5,6 +5,7 @@ import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { Task } from '@/types/database';
 import { ThemedText } from '@/components/ThemedText';
 import { getStatusIcon, getStatusColor, getNextStatus } from '@/utils/taskUtils';
+import { useState } from 'react';
 
 interface TaskItemProps {
   task: Task;
@@ -27,6 +28,18 @@ export function TaskItem({
 }: TaskItemProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const [isCollapsed, setIsCollapsed] = useState(true);
+
+  // Calculate completion percentage
+  const getCompletionPercentage = () => {
+    if (!task.subtasks?.length) return 0;
+    const completedTasks = task.subtasks.filter(
+      subtask => subtask.status === 'completed'
+    ).length;
+    return Math.round((completedTasks / task.subtasks.length) * 100);
+  };
+
+  const completionPercentage = getCompletionPercentage();
 
   const renderRightActions = (
     progress: Animated.AnimatedInterpolation<number>,
@@ -63,6 +76,26 @@ export function TaskItem({
           ]}>
           {task.title}
         </ThemedText>
+        {task.has_subtasks && (
+          <TouchableOpacity 
+            onPress={() => setIsCollapsed(!isCollapsed)}
+            style={styles.collapseButton}
+          >
+            <MaterialIcons
+              name={isCollapsed ? 'chevron-right' : 'expand-more'}
+              size={20}
+              color={isDark ? '#9CA3AF' : '#6B7280'}
+            />
+            {isCollapsed && task.subtasks?.length > 0 && (
+              <ThemedText style={[
+                styles.subtaskPercentage,
+                completionPercentage === 100 && styles.subtaskPercentageComplete
+              ]}>
+                {completionPercentage}%
+              </ThemedText>
+            )}
+          </TouchableOpacity>
+        )}
       </View>
       {task.description && (
         <ThemedText style={[styles.taskDescription, isDark && styles.taskDescriptionDark]}>
@@ -131,8 +164,8 @@ export function TaskItem({
         </View>
       </Swipeable>
       
-      {/* Render subtasks */}
-      {task.subtasks?.map((subtask) => (
+      {/* Only render subtasks if not collapsed */}
+      {!isCollapsed && task.subtasks?.map((subtask) => (
         <TaskItem
           key={subtask.id}
           task={subtask}
@@ -239,5 +272,23 @@ const styles = StyleSheet.create({
   },
   taskContentWrapper: {
     flex: 1,
+  },
+  collapseButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 4,
+  },
+  subtaskPercentage: {
+    fontSize: 12,
+    color: '#6B7280',
+    backgroundColor: '#E5E7EB',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginLeft: 4,
+  },
+  subtaskPercentageComplete: {
+    backgroundColor: '#10B981', // green background for 100%
+    color: '#FFFFFF', // white text for 100%
   },
 }); 
