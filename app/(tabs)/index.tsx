@@ -6,7 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { ThemedText } from '@/components/ThemedText';
 import { TaskSummary } from '@/components/tasks/TaskSummary';
 import { useAuth } from '@/context/auth';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/services/supabase/supabase';
 import { Task } from '@/types/database';
 import { WeatherCard } from '@/components/weather/WeatherCard';
 

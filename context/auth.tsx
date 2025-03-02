@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/services/supabase/supabase';
 import { User } from '@/types/database';
 
 type AuthContextType = {

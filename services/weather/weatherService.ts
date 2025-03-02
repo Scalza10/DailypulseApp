@@ -35,7 +35,7 @@ export const weatherService = {
     }
 
     const location = await Location.getCurrentPositionAsync({});
-    console.log(location);
+    
     return location;
   },
 

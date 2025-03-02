@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Alert } from 'react-native';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/services/supabase/supabase';
 import { useAuth } from '@/context/auth';
 import { Task } from '@/types/database';
 
@@ -122,9 +122,6 @@ export function useTasks() {
       const taskToUpdate = tasks.find(t => t.id === taskId);
       if (!taskToUpdate) return;
 
-      console.log('Task to update:', taskToUpdate); // Debug log
-      console.log('New status:', newStatus); // Debug log
-
       const { error } = await supabase
         .from('tasks')
         .update({ status: newStatus })
@@ -134,8 +131,6 @@ export function useTasks() {
 
       // If task is completed and is recurring, create a new instance
       if (newStatus === 'completed' && taskToUpdate.recurring?.enabled) {
-        console.log('Creating recurring task...'); // Debug log
-        console.log('Recurring settings:', taskToUpdate.recurring); // Debug log
 
         const dueDate = taskToUpdate.due_date ? new Date(taskToUpdate.due_date) : null;
         let newDueDate = null;
@@ -156,8 +151,6 @@ export function useTasks() {
           }
           newDueDate = newDate;
         }
-
-        console.log('New due date:', newDueDate); // Debug log
 
         // Create new task
         const { data: newTask, error: createError } = await supabase
@@ -182,8 +175,6 @@ export function useTasks() {
           console.error('Error creating recurring task:', createError); // Debug log
           throw createError;
         }
-
-        console.log('New task created:', newTask); // Debug log
       }
 
       await fetchTasks();
