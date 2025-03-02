@@ -29,7 +29,8 @@ export default function TasksScreen() {
     selectedFilter,
     setSelectedFilter,
     sortBy,
-    setSortBy
+    setSortBy,
+    setSearchCriteria,
   } = useTasks();
 
   return (
@@ -46,6 +47,7 @@ export default function TasksScreen() {
         <TaskSort
           sortBy={sortBy}
           onSortChange={setSortBy}
+          onSearch={setSearchCriteria}
         />
 
         <TaskList

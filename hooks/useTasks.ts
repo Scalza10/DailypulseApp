@@ -15,6 +15,11 @@ export function useTasks() {
   const [selectedFilter, setSelectedFilter] = useState<Task['status'] | 'all'>('all');
   const [sortBy, setSortBy] = useState<'due_date' | 'priority' | 'created'>('created');
   const { session } = useAuth();
+  const [searchCriteria, setSearchCriteria] = useState<{
+    searchText: string;
+    includeDone: boolean;
+    priority: ('high' | 'medium' | 'low' | null)[];
+  } | null>(null);
 
   useEffect(() => {
     fetchTasks();
@@ -261,7 +266,34 @@ export function useTasks() {
   };
 
   const filteredAndGroupedTasks = useMemo(() => {
-    const filteredTasks = tasks.filter(task => 
+    let filteredTasks = tasks;
+
+    // Apply search criteria if exists and has actual filters
+    if (searchCriteria && (
+      searchCriteria.searchText || 
+      searchCriteria.priority.length > 0 || 
+      searchCriteria.includeDone
+    )) {
+      filteredTasks = tasks.filter(task => {
+        const matchesText = searchCriteria.searchText
+          ? (task.title.toLowerCase().includes(searchCriteria.searchText.toLowerCase()) ||
+             (task.description?.toLowerCase() || '').includes(searchCriteria.searchText.toLowerCase()))
+          : true;
+
+        const matchesPriority = searchCriteria.priority.length > 0
+          ? searchCriteria.priority.includes(task.priority)
+          : true;
+
+        const matchesStatus = searchCriteria.includeDone
+          ? true
+          : task.status !== 'completed';
+
+        return matchesText && matchesPriority && matchesStatus;
+      });
+    }
+
+    // Apply status filter
+    filteredTasks = filteredTasks.filter(task => 
       selectedFilter === 'all' || task.status === selectedFilter
     );
     
@@ -284,7 +316,7 @@ export function useTasks() {
       const order = ['in_progress', 'pending', 'completed'];
       return order.indexOf(a.title as Task['status']) - order.indexOf(b.title as Task['status']);
     });
-  }, [tasks, selectedFilter, sortBy]);
+  }, [tasks, selectedFilter, sortBy, searchCriteria]);
 
   return {
     tasks,
@@ -299,5 +331,6 @@ export function useTasks() {
     setSelectedFilter,
     sortBy,
     setSortBy,
+    setSearchCriteria,
   };
 } 
