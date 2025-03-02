@@ -23,139 +23,55 @@ export default function FocusScreen() {
   }>();
 
   const [isRunning, setIsRunning] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(1 * 60); // Change back to 25 minutes
+  const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 minutes
   const isDark = useColorScheme() === 'dark';
-  const timerRef = useRef<NodeJS.Timeout>();
-  const appState = useRef(AppState.currentState);
-  const endTimeRef = useRef<Date | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
-    requestNotificationPermission();
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-
-    // Check and update timer every time app comes to foreground
-    if (isRunning && endTimeRef.current) {
-      const now = new Date();
-      const remaining = Math.max(0, Math.floor((endTimeRef.current.getTime() - now.getTime()) / 1000));
-      setTimeLeft(remaining);
-      
-      if (remaining === 0) {
-        setIsRunning(false);
-        endTimeRef.current = null;
-      }
-    }
-
+    // Cleanup on unmount
     return () => {
-      subscription.remove();
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
       }
     };
-  }, [isRunning]);
+  }, []);
 
-  const requestNotificationPermission = async () => {
-    if (Platform.OS === 'ios') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== 'granted') {
-        alert('Please enable notifications to get timer alerts!');
-      }
-    }
-  };
-
-  const handleAppStateChange = (nextAppState: AppStateStatus) => {
-    if (appState.current === 'active' && nextAppState.match(/inactive|background/)) {
-      // App is going to background
-      if (isRunning) {
-        // Store the exact time when timer should end
-        const now = new Date();
-        endTimeRef.current = new Date(now.getTime() + timeLeft * 1000);
-        
-        // Clear the interval as it won't run in background
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-        }
-      }
-    } else if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
-      // App is coming to foreground
-      if (isRunning && endTimeRef.current) {
-        const now = new Date();
-        const remaining = Math.max(0, Math.floor((endTimeRef.current.getTime() - now.getTime()) / 1000));
-        setTimeLeft(remaining);
-        
-        if (remaining === 0) {
+  const startTimer = () => {
+    setIsRunning(true);
+    intervalRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(intervalRef.current);
           setIsRunning(false);
-          endTimeRef.current = null;
-        } else {
-          // Restart the interval
-          startInterval();
+          showNotification();
+          return 0;
         }
-      }
-    }
-    appState.current = nextAppState;
+        return prev - 1;
+      });
+    }, 1000);
   };
 
-  const scheduleNotification = async () => {
-    // Cancel any existing notifications first
-    await Notifications.cancelAllScheduledNotificationsAsync();
-    
+  const pauseTimer = () => {
+    setIsRunning(false);
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+  };
+
+  const resetTimer = () => {
+    pauseTimer();
+    setTimeLeft(25 * 60);
+  };
+
+  const showNotification = async () => {
     await Notifications.scheduleNotificationAsync({
       content: {
         title: "Time's up!",
         body: params.taskTitle ? `Finished focusing on: ${params.taskTitle}` : "Pomodoro session complete!",
         sound: true,
       },
-      trigger: {
-        seconds: timeLeft,
-      },
+      trigger: null,
     });
-  };
-
-  const startInterval = () => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-
-    const intervalId = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 0) {
-          clearInterval(intervalId);
-          setIsRunning(false);
-          endTimeRef.current = null;
-          Notifications.presentNotificationAsync({
-            title: "Time's up!",
-            body: params.taskTitle ? `Finished focusing on: ${params.taskTitle}` : "Pomodoro session complete!",
-            sound: true,
-          });
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    timerRef.current = intervalId;
-  };
-
-  const startTimer = () => {
-    setIsRunning(true);
-    const now = new Date();
-    endTimeRef.current = new Date(now.getTime() + timeLeft * 1000);
-    startInterval();
-  };
-
-  const pauseTimer = () => {
-    setIsRunning(false);
-    endTimeRef.current = null;
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = undefined;
-    }
-    Notifications.cancelAllScheduledNotificationsAsync();
-  };
-
-  const resetTimer = () => {
-    pauseTimer();
-    setTimeLeft(1 * 60);
-    endTimeRef.current = null;
   };
 
   const formatTime = (seconds: number) => {
