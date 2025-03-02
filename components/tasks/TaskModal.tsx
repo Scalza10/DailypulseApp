@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, Fragment } from "react";
 import {
   Modal,
   StyleSheet,
@@ -49,10 +49,21 @@ export function TaskModal({
   useEffect(() => {
     if (initialTask) {
       setTitle(initialTask.title);
-      setDescription(initialTask.description);
-      setDueDate(initialTask.due_date ? new Date(initialTask.due_date) : null);
+      setDescription(isSubtask ? "" : initialTask.description);
+      setDueDate(isSubtask ? null : initialTask.due_date ? new Date(initialTask.due_date) : null);
+    } else {
+      setTitle("");
+      setDescription("");
+      setDueDate(null);
     }
-  }, [initialTask]);
+  }, [initialTask, isSubtask]);
+
+  useEffect(() => {
+    if (isSubtask) {
+      setDescription("");
+      setDueDate(null);
+    }
+  }, [isSubtask]);
 
   const handleSave = async (task: {
     title: string;
@@ -87,15 +98,9 @@ export function TaskModal({
                 {initialTask 
                   ? "Edit Task" 
                   : isSubtask 
-                    ? `New Subtask${parentTask ? ` for "${parentTask.title}"` : ''}`
+                    ? `Add Subtask to "${parentTask?.title}"`
                     : "New Task"}
               </ThemedText>
-              {parentTask && (
-                <View style={styles.parentTaskIndicator}>
-                  <MaterialIcons name="subdirectory-arrow-right" size={20} color="#6B7280" />
-                  <ThemedText style={styles.parentTaskText}>Subtask</ThemedText>
-                </View>
-              )}
             </View>
 
             <TextInput
@@ -105,49 +110,57 @@ export function TaskModal({
               onChangeText={setTitle}
             />
 
-            <TextInput
-              style={[styles.input, styles.descriptionInput]}
-              placeholder="Description (optional)"
-              value={description}
-              onChangeText={setDescription}
-              multiline
-            />
-
-            {!showDatePicker && (
-              <TouchableOpacity
-                style={styles.dateButton}
-                onPress={() => setShowDatePicker(true)}
-              >
-                <MaterialIcons name="event" size={20} color="#6B7280" />
-                <ThemedText style={styles.dateButtonText}>
-                  {dueDate ? dueDate.toLocaleDateString() : "Due Date"}
-                </ThemedText>
-                {dueDate && (
-                  <TouchableOpacity 
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      setDueDate(null);
-                    }}
-                    style={styles.clearDateButton}
-                  >
-                    <MaterialIcons name="close" size={16} color="#6B7280" />
-                  </TouchableOpacity>
-                )}
-              </TouchableOpacity>
+            {/* Only show description for main tasks */}
+            {!isSubtask && (
+              <TextInput
+                style={[styles.input, styles.descriptionInput]}
+                placeholder="Description (optional)"
+                value={description}
+                onChangeText={setDescription}
+                multiline
+              />
             )}
 
-            {showDatePicker && (
-              <DateTimePicker
-                value={dueDate || new Date()}
-                mode="date"
-                display="default"
-                onChange={(event, selectedDate) => {
-                  setShowDatePicker(false);
-                  if (selectedDate) {
-                    setDueDate(selectedDate);
-                  }
-                }}
-              />
+            {/* Only show due date for main tasks */}
+            {!isSubtask && (
+              <Fragment>
+                {!showDatePicker && (
+                  <TouchableOpacity
+                    style={styles.dateButton}
+                    onPress={() => setShowDatePicker(true)}
+                  >
+                    <MaterialIcons name="event" size={20} color="#6B7280" />
+                    <ThemedText style={styles.dateButtonText}>
+                      {dueDate ? dueDate.toLocaleDateString() : "Due Date"}
+                    </ThemedText>
+                    {dueDate && (
+                      <TouchableOpacity 
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          setDueDate(null);
+                        }}
+                        style={styles.clearDateButton}
+                      >
+                        <MaterialIcons name="close" size={16} color="#6B7280" />
+                      </TouchableOpacity>
+                    )}
+                  </TouchableOpacity>
+                )}
+
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={dueDate || new Date()}
+                    mode="date"
+                    display="default"
+                    onChange={(event, selectedDate) => {
+                      setShowDatePicker(false);
+                      if (selectedDate) {
+                        setDueDate(selectedDate);
+                      }
+                    }}
+                  />
+                )}
+              </Fragment>
             )}
           </ScrollView>
 
@@ -162,8 +175,8 @@ export function TaskModal({
               ]}
               onPress={() => handleSave({
                 title,
-                description,
-                due_date: dueDate,
+                description: isSubtask ? '' : description,
+                due_date: isSubtask ? null : dueDate,
                 parent_id: parentTask?.id || null,
               })}
               disabled={!title.trim()}
@@ -256,15 +269,5 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     marginBottom: 20,
-  },
-  parentTaskIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    gap: 4,
-  },
-  parentTaskText: {
-    fontSize: 14,
-    color: '#6B7280',
   },
 });

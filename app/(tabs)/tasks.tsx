@@ -88,7 +88,7 @@ export default function TasksScreen() {
             description: selectedTask.description || '',
             due_date: selectedTask.due_date,
           } : undefined}
-          parentTask={parentTask}
+          parentTask={parentTask || undefined}
           isSubtask={!!parentTask}
         />
       </SafeAreaView>

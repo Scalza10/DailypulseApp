@@ -51,80 +51,99 @@ export function TaskItem({
     );
   };
 
+  const renderTaskContent = (task: Task) => (
+    <View style={styles.taskContent}>
+      <View style={styles.titleContainer}>
+        <ThemedText
+          style={[
+            styles.taskTitle,
+            isDark && styles.taskTitleDark,
+            task.status === 'completed' && styles.completedTask,
+            task.status === 'completed' && isDark && styles.completedTaskDark,
+          ]}>
+          {task.title}
+        </ThemedText>
+      </View>
+      {task.description && (
+        <ThemedText style={[styles.taskDescription, isDark && styles.taskDescriptionDark]}>
+          {task.description}
+        </ThemedText>
+      )}
+      {task.due_date && (
+        <ThemedText style={[styles.taskDueDate, isDark && styles.taskDueDateDark]}>
+          Due: {new Date(task.due_date).toLocaleDateString()}
+        </ThemedText>
+      )}
+    </View>
+  );
+
   return (
-    <Swipeable renderRightActions={renderRightActions}>
-      <View style={[
-        styles.taskItem, 
-        isDark && styles.taskItemDark,
-        isSubtask && styles.subtaskItem,
-        { marginLeft: depth * 20 }
-      ]}>
-        <TouchableOpacity
-          style={styles.statusButton}
-          onPress={() => {
-            const nextStatus = getNextStatus(task.status);
-            onStatusChange(task.id, nextStatus);
-          }}>
-          <MaterialIcons
-            name={getStatusIcon(task.status)}
-            size={24}
-            color={getStatusColor(task.status)}
-          />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.taskContent} onPress={() => onSelect(task)}>
-          <View style={styles.titleContainer}>
-            <ThemedText
-              style={[
-                styles.taskTitle,
-                isDark && styles.taskTitleDark,
-                task.status === 'completed' && styles.completedTask,
-                task.status === 'completed' && isDark && styles.completedTaskDark,
-              ]}>
-              {task.title}
-            </ThemedText>
-            {task.has_subtasks && (
-              <MaterialIcons 
-                name="subdirectory-arrow-right" 
-                size={20} 
-                color={isDark ? '#6B7280' : '#9CA3AF'} 
-              />
-            )}
-          </View>
-          {task.description && (
-            <ThemedText style={[styles.taskDescription, isDark && styles.taskDescriptionDark]}>
-              {task.description}
-            </ThemedText>
-          )}
-          {task.due_date && (
-            <ThemedText style={[styles.taskDueDate, isDark && styles.taskDueDateDark]}>
-              Due: {new Date(task.due_date).toLocaleDateString()}
-            </ThemedText>
-          )}
-        </TouchableOpacity>
-        <View style={styles.actionsContainer}>
-          <TouchableOpacity 
-            style={styles.pomodoroButton}
-            onPress={() => router.push({
-              pathname: '/(tabs)/focus',
-              params: { 
-                taskId: task.id,
-                taskTitle: task.title,
-                taskDescription: task.description || ''
-              }
-            })}>
-            <MaterialIcons name="timer" size={24} color="#9333EA" />
+    <View>
+      <Swipeable renderRightActions={renderRightActions}>
+        <View style={[
+          styles.taskItem, 
+          isDark && styles.taskItemDark,
+          isSubtask && styles.subtaskItem,
+          { marginLeft: depth * 20 }
+        ]}>
+          <TouchableOpacity
+            style={styles.statusButton}
+            onPress={() => {
+              const nextStatus = getNextStatus(task.status);
+              onStatusChange(task.id, nextStatus);
+            }}>
+            <MaterialIcons
+              name={getStatusIcon(task.status)}
+              size={24}
+              color={getStatusColor(task.status)}
+            />
           </TouchableOpacity>
           
-          {!isSubtask && onAddSubtask && (
-            <TouchableOpacity 
-              style={styles.subtaskButton}
-              onPress={() => onAddSubtask(task)}>
-              <MaterialIcons name="add-task" size={24} color="#2563EB" />
-            </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.taskContentWrapper} 
+            onPress={() => onSelect(task)}
+          >
+            {renderTaskContent(task)}
+          </TouchableOpacity>
+
+          {!isSubtask && (
+            <View style={styles.actionsContainer}>
+              <TouchableOpacity 
+                style={styles.pomodoroButton}
+                onPress={() => router.push({
+                  pathname: '/(tabs)/focus',
+                  params: { 
+                    taskId: task.id,
+                    taskTitle: task.title,
+                    taskDescription: task.description || ''
+                  }
+                })}>
+                <MaterialIcons name="timer" size={24} color="#9333EA" />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.subtaskButton}
+                onPress={() => onAddSubtask?.(task)}>
+                <MaterialIcons name="add-task" size={24} color="#2563EB" />
+              </TouchableOpacity>
+            </View>
           )}
         </View>
-      </View>
-    </Swipeable>
+      </Swipeable>
+      
+      {/* Render subtasks */}
+      {task.subtasks?.map((subtask) => (
+        <TaskItem
+          key={subtask.id}
+          task={subtask}
+          onStatusChange={onStatusChange}
+          onSelect={onSelect}
+          onDelete={onDelete}
+          depth={depth + 1}
+          isSubtask={true}
+        />
+      ))}
+    </View>
   );
 }
 
@@ -202,6 +221,8 @@ const styles = StyleSheet.create({
   subtaskItem: {
     borderLeftWidth: 1,
     borderLeftColor: '#E5E7EB',
+    backgroundColor: 'rgba(243, 244, 246, 0.5)',
+    marginTop: -8,
   },
   titleContainer: {
     flexDirection: 'row',
@@ -215,5 +236,8 @@ const styles = StyleSheet.create({
   subtaskButton: {
     padding: 8,
     justifyContent: 'center',
+  },
+  taskContentWrapper: {
+    flex: 1,
   },
 }); 

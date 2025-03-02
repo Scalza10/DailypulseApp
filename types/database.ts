@@ -20,4 +20,5 @@ export interface Task {
   has_subtasks: boolean;
   order: number;
   depth: number;
+  subtasks?: Task[];
 } 
