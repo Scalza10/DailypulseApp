@@ -22,4 +22,8 @@ export interface Task {
   depth: number;
   subtasks?: Task[];
   priority: 'high' | 'medium' | 'low' | null;
+  recurring: {
+    enabled: boolean;
+    frequency: 'daily' | 'weekly' | 'monthly' | null;
+  } | null;
 } 

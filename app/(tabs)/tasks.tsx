@@ -90,12 +90,14 @@ export default function TasksScreen() {
                 title: taskData.title,
                 description: taskData.description,
                 due_date: taskData.due_date,
-                priority: taskData.priority || null
+                priority: taskData.priority || null,
+                recurring: taskData.recurring || null
               });
             } else {
               await handleCreateTask({
                 ...taskData,
-                priority: taskData.priority || null
+                priority: taskData.priority || null,
+                recurring: taskData.recurring || null
               });
             }
           }}
@@ -103,7 +105,8 @@ export default function TasksScreen() {
             title: selectedTask.title,
             description: selectedTask.description || '',
             due_date: selectedTask.due_date,
-            priority: selectedTask.priority
+            priority: selectedTask.priority,
+            recurring: selectedTask.recurring
           } : undefined}
           parentTask={parentTask || undefined}
           isSubtask={!!parentTask}

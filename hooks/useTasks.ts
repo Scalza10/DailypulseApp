@@ -48,6 +48,10 @@ export function useTasks() {
     due_date: Date | null;
     priority: 'high' | 'medium' | 'low' | null;
     parent_id?: string | null;
+    recurring?: {
+      enabled: boolean;
+      frequency: 'daily' | 'weekly' | 'monthly' | null;
+    } | null;
   }) => {
     try {
       const { data: newTask, error } = await supabase
@@ -63,6 +67,7 @@ export function useTasks() {
           order: 0,
           depth: taskData.parent_id ? 1 : 0,
           priority: taskData.priority || null,
+          recurring: taskData.recurring || null,
         })
         .select()
         .single();
@@ -88,6 +93,10 @@ export function useTasks() {
     description: string;
     due_date: Date | null;
     priority: 'high' | 'medium' | 'low' | null;
+    recurring?: {
+      enabled: boolean;
+      frequency: 'daily' | 'weekly' | 'monthly' | null;
+    } | null;
   }) => {
     try {
       const { error } = await supabase
@@ -97,6 +106,7 @@ export function useTasks() {
           description: taskData.description || null,
           due_date: taskData.due_date?.toISOString() || null,
           priority: taskData.priority || null,
+          recurring: taskData.recurring || null,
         })
         .eq('id', taskData.id);
 
@@ -109,55 +119,76 @@ export function useTasks() {
 
   const handleStatusChange = async (taskId: string, newStatus: Task['status']) => {
     try {
-      // Get the task and its related tasks
-      const task = tasks.find(t => t.id === taskId);
-      if (!task) return;
+      const taskToUpdate = tasks.find(t => t.id === taskId);
+      if (!taskToUpdate) return;
 
-      const childTasks = tasks.filter(t => t.parent_id === taskId);
-      const parentTask = task.parent_id ? tasks.find(t => t.id === task.parent_id) : null;
+      console.log('Task to update:', taskToUpdate); // Debug log
+      console.log('New status:', newStatus); // Debug log
 
-      // Update the task's status
-      await supabase
+      const { error } = await supabase
         .from('tasks')
         .update({ status: newStatus })
         .eq('id', taskId);
 
-      // If updating a parent task, update all child tasks
-      if (childTasks.length > 0) {
-        await supabase
-          .from('tasks')
-          .update({ status: newStatus })
-          .in('id', childTasks.map(t => t.id));
-      }
+      if (error) throw error;
 
-      // If updating a child task
-      if (parentTask) {
-        const siblingTasks = tasks.filter(t => t.parent_id === parentTask.id);
-        
-        if (newStatus === 'in_progress' || newStatus === 'pending') {
-          // If child goes to in_progress or pending, parent should match
-          await supabase
-            .from('tasks')
-            .update({ status: newStatus })
-            .eq('id', parentTask.id);
-        } else if (newStatus === 'completed') {
-          // Check if all siblings are completed
-          const allCompleted = siblingTasks.every(t => 
-            t.id === taskId ? true : t.status === 'completed'
-          );
+      // If task is completed and is recurring, create a new instance
+      if (newStatus === 'completed' && taskToUpdate.recurring?.enabled) {
+        console.log('Creating recurring task...'); // Debug log
+        console.log('Recurring settings:', taskToUpdate.recurring); // Debug log
+
+        const dueDate = taskToUpdate.due_date ? new Date(taskToUpdate.due_date) : null;
+        let newDueDate = null;
+
+        if (dueDate) {
+          const newDate = new Date(dueDate); // Create new date object to avoid modifying original
           
-          if (allCompleted) {
-            // If all children are completed, complete the parent
-            await supabase
-              .from('tasks')
-              .update({ status: 'completed' })
-              .eq('id', parentTask.id);
+          switch (taskToUpdate.recurring.frequency) {
+            case 'daily':
+              newDate.setDate(newDate.getDate() + 1);
+              break;
+            case 'weekly':
+              newDate.setDate(newDate.getDate() + 7);
+              break;
+            case 'monthly':
+              newDate.setMonth(newDate.getMonth() + 1);
+              break;
           }
+          newDueDate = newDate;
         }
+
+        console.log('New due date:', newDueDate); // Debug log
+
+        // Create new task
+        const { data: newTask, error: createError } = await supabase
+          .from('tasks')
+          .insert({
+            user_id: session?.user.id,
+            title: taskToUpdate.title,
+            description: taskToUpdate.description,
+            due_date: newDueDate?.toISOString() || null,
+            status: 'pending',
+            priority: taskToUpdate.priority,
+            recurring: taskToUpdate.recurring,
+            parent_id: null,
+            has_subtasks: false,
+            order: 0,
+            depth: 0,
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('Error creating recurring task:', createError); // Debug log
+          throw createError;
+        }
+
+        console.log('New task created:', newTask); // Debug log
       }
 
       await fetchTasks();
     } catch (error: any) {
+      console.error('Error in handleStatusChange:', error); // Debug log
       Alert.alert('Error', error.message);
     }
   };

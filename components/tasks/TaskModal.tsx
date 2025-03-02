@@ -8,6 +8,7 @@ import {
   Platform,
   ScrollView,
   View,
+  Switch,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -15,7 +16,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { Task } from '@/types/database';
 
-type TaskModalProps = {
+interface TaskModalProps {
   visible: boolean;
   onClose: () => void;
   onSave: (task: {
@@ -24,16 +25,24 @@ type TaskModalProps = {
     due_date: Date | null;
     parent_id?: string | null;
     priority?: 'high' | 'medium' | 'low' | null;
+    recurring?: {
+      enabled: boolean;
+      frequency: 'daily' | 'weekly' | 'monthly' | null;
+    } | null;
   }) => Promise<void>;
   initialTask?: {
     title: string;
     description: string;
     due_date: string | null;
     priority?: 'high' | 'medium' | 'low' | null;
+    recurring?: {
+      enabled: boolean;
+      frequency: 'daily' | 'weekly' | 'monthly' | null;
+    } | null;
   };
   parentTask?: Task;
   isSubtask?: boolean;
-};
+}
 
 export function TaskModal({
   visible,
@@ -48,18 +57,26 @@ export function TaskModal({
   const [dueDate, setDueDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [priority, setPriority] = useState<'high' | 'medium' | 'low' | null>(null);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringFrequency, setRecurringFrequency] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
 
   useEffect(() => {
     if (initialTask) {
       setTitle(initialTask.title);
       setDescription(isSubtask ? "" : initialTask.description);
       setDueDate(isSubtask ? null : initialTask.due_date ? new Date(initialTask.due_date) : null);
-      setPriority(initialTask.priority || null);
+      setPriority(isSubtask ? null : initialTask.priority);
+      if (!isSubtask && initialTask.recurring) {
+        setIsRecurring(initialTask.recurring.enabled);
+        setRecurringFrequency(initialTask.recurring.frequency || 'weekly');
+      }
     } else {
       setTitle("");
       setDescription("");
       setDueDate(null);
       setPriority(null);
+      setIsRecurring(false);
+      setRecurringFrequency('weekly');
     }
   }, [initialTask, isSubtask]);
 
@@ -79,17 +96,20 @@ export function TaskModal({
     }
   };
 
-  const handleSave = async (task: {
-    title: string;
-    description: string;
-    due_date: Date | null;
-    parent_id?: string | null;
-    priority?: 'high' | 'medium' | 'low' | null;
-  }) => {
-    if (!title.trim()) {
-      return;
-    }
-    await onSave(task);
+  const handleSave = async () => {
+    if (!title.trim()) return;
+    
+    await onSave({
+      title,
+      description: isSubtask ? '' : description,
+      due_date: isSubtask ? null : dueDate,
+      priority,
+      parent_id: parentTask?.id || null,
+      recurring: isRecurring ? {
+        enabled: true,
+        frequency: recurringFrequency,
+      } : null,
+    });
     handleClose();
   };
 
@@ -98,6 +118,8 @@ export function TaskModal({
     setDescription("");
     setDueDate(null);
     setPriority(null);
+    setIsRecurring(false);
+    setRecurringFrequency('weekly');
     onClose();
   };
 
@@ -126,18 +148,16 @@ export function TaskModal({
               onChangeText={setTitle}
             />
 
-            {/* Only show description for main tasks */}
             {!isSubtask && (
               <TextInput
                 style={[styles.input, styles.descriptionInput]}
-                placeholder="Description (optional)"
+                placeholder="Description"
                 value={description}
                 onChangeText={setDescription}
                 multiline
               />
             )}
 
-            {/* Only show due date for main tasks */}
             {!isSubtask && (
               <Fragment>
                 {!showDatePicker && (
@@ -179,8 +199,8 @@ export function TaskModal({
               </Fragment>
             )}
 
-            <View style={styles.prioritySection}>
-              <ThemedText style={styles.priorityLabel}>Priority:</ThemedText>
+            <View style={styles.section}>
+              <ThemedText style={styles.sectionTitle}>Priority</ThemedText>
               <View style={styles.priorityButtons}>
                 {(['high', 'medium', 'low'] as const).map((p) => (
                   <TouchableOpacity
@@ -201,6 +221,40 @@ export function TaskModal({
                 ))}
               </View>
             </View>
+
+            <View style={styles.section}>
+              <View style={styles.recurringHeader}>
+                <ThemedText style={styles.sectionTitle}>Recurring Task</ThemedText>
+                <Switch
+                  value={isRecurring}
+                  onValueChange={setIsRecurring}
+                  trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
+                  thumbColor={isRecurring ? '#2563EB' : '#9CA3AF'}
+                />
+              </View>
+
+              {isRecurring && (
+                <View style={styles.frequencyButtons}>
+                  {(['daily', 'weekly', 'monthly'] as const).map((frequency) => (
+                    <TouchableOpacity
+                      key={frequency}
+                      style={[
+                        styles.frequencyButton,
+                        recurringFrequency === frequency && styles.frequencyButtonActive
+                      ]}
+                      onPress={() => setRecurringFrequency(frequency)}
+                    >
+                      <ThemedText style={[
+                        styles.frequencyButtonText,
+                        recurringFrequency === frequency && styles.frequencyButtonTextActive
+                      ]}>
+                        {frequency.charAt(0).toUpperCase() + frequency.slice(1)}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
           </ScrollView>
 
           <View style={styles.buttonContainer}>
@@ -212,13 +266,7 @@ export function TaskModal({
                 styles.saveButton,
                 !title.trim() && styles.saveButtonDisabled,
               ]}
-              onPress={() => handleSave({
-                title,
-                description: isSubtask ? '' : description,
-                due_date: isSubtask ? null : dueDate,
-                priority,
-                parent_id: parentTask?.id || null,
-              })}
+              onPress={handleSave}
               disabled={!title.trim()}
             >
               <ThemedText style={styles.buttonText}>
@@ -310,12 +358,11 @@ const styles = StyleSheet.create({
   headerContainer: {
     marginBottom: 20,
   },
-  prioritySection: {
+  section: {
     marginBottom: 16,
   },
-  priorityLabel: {
+  sectionTitle: {
     fontSize: 16,
-    marginBottom: 8,
   },
   priorityButtons: {
     flexDirection: 'row',
@@ -335,6 +382,36 @@ const styles = StyleSheet.create({
   },
   priorityButtonTextSelected: {
     color: 'white',
+    fontWeight: '600',
+  },
+  recurringHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  frequencyButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  frequencyButton: {
+    flex: 1,
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+  },
+  frequencyButtonActive: {
+    backgroundColor: '#2563EB',
+    borderColor: '#2563EB',
+  },
+  frequencyButtonText: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  frequencyButtonTextActive: {
+    color: '#FFFFFF',
     fontWeight: '600',
   },
 });
