@@ -8,6 +8,7 @@ import { TaskFilter } from '@/components/tasks/TaskFilter';
 import { TaskModal } from '@/components/tasks/TaskModal';
 import { Task } from '@/types/database';
 import { useTasks } from '@/hooks/useTasks';
+import { TaskSort } from '@/components/tasks/TaskSort';
 
 export default function TasksScreen() {
   const colorScheme = useColorScheme();
@@ -26,7 +27,9 @@ export default function TasksScreen() {
     handleStatusChange, 
     handleDeleteTask,
     selectedFilter,
-    setSelectedFilter
+    setSelectedFilter,
+    sortBy,
+    setSortBy
   } = useTasks();
 
   return (
@@ -38,6 +41,11 @@ export default function TasksScreen() {
           onFilterChange={setSelectedFilter}
           dropdownVisible={dropdownVisible}
           setDropdownVisible={setDropdownVisible}
+        />
+
+        <TaskSort
+          sortBy={sortBy}
+          onSortChange={setSortBy}
         />
 
         <TaskList
@@ -77,16 +85,23 @@ export default function TasksScreen() {
             if (selectedTask) {
               await handleEditTask({
                 id: selectedTask.id,
-                ...taskData
+                title: taskData.title,
+                description: taskData.description,
+                due_date: taskData.due_date,
+                priority: taskData.priority || null
               });
             } else {
-              await handleCreateTask(taskData);
+              await handleCreateTask({
+                ...taskData,
+                priority: taskData.priority || null
+              });
             }
           }}
           initialTask={selectedTask ? {
             title: selectedTask.title,
             description: selectedTask.description || '',
             due_date: selectedTask.due_date,
+            priority: selectedTask.priority
           } : undefined}
           parentTask={parentTask || undefined}
           isSubtask={!!parentTask}

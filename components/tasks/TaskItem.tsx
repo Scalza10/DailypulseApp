@@ -41,6 +41,15 @@ export function TaskItem({
 
   const completionPercentage = getCompletionPercentage();
 
+  const getPriorityColor = (priority: 'high' | 'medium' | 'low' | null) => {
+    switch (priority) {
+      case 'high': return '#EF4444';
+      case 'medium': return '#F59E0B';
+      case 'low': return '#10B981';
+      default: return 'transparent';
+    }
+  };
+
   const renderRightActions = (
     progress: Animated.AnimatedInterpolation<number>,
     dragX: Animated.AnimatedInterpolation<number>
@@ -114,10 +123,11 @@ export function TaskItem({
     <View>
       <Swipeable renderRightActions={renderRightActions}>
         <View style={[
-          styles.taskItem, 
+          styles.taskItem,
           isDark && styles.taskItemDark,
           isSubtask && styles.subtaskItem,
-          { marginLeft: depth * 20 }
+          { marginLeft: depth * 20 },
+          task.priority && { borderLeftColor: getPriorityColor(task.priority), borderLeftWidth: 4 }
         ]}>
           <TouchableOpacity
             style={styles.statusButton}

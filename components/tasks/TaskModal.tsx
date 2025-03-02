@@ -23,11 +23,13 @@ type TaskModalProps = {
     description: string;
     due_date: Date | null;
     parent_id?: string | null;
+    priority?: 'high' | 'medium' | 'low' | null;
   }) => Promise<void>;
   initialTask?: {
     title: string;
     description: string;
     due_date: string | null;
+    priority?: 'high' | 'medium' | 'low' | null;
   };
   parentTask?: Task;
   isSubtask?: boolean;
@@ -45,16 +47,19 @@ export function TaskModal({
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [priority, setPriority] = useState<'high' | 'medium' | 'low' | null>(null);
 
   useEffect(() => {
     if (initialTask) {
       setTitle(initialTask.title);
       setDescription(isSubtask ? "" : initialTask.description);
       setDueDate(isSubtask ? null : initialTask.due_date ? new Date(initialTask.due_date) : null);
+      setPriority(initialTask.priority || null);
     } else {
       setTitle("");
       setDescription("");
       setDueDate(null);
+      setPriority(null);
     }
   }, [initialTask, isSubtask]);
 
@@ -65,11 +70,21 @@ export function TaskModal({
     }
   }, [isSubtask]);
 
+  const getPriorityColor = (p: 'high' | 'medium' | 'low' | null) => {
+    switch (p) {
+      case 'high': return '#EF4444';  // red
+      case 'medium': return '#F59E0B'; // amber
+      case 'low': return '#10B981';    // green
+      default: return '#6B7280';       // gray
+    }
+  };
+
   const handleSave = async (task: {
     title: string;
     description: string;
     due_date: Date | null;
     parent_id?: string | null;
+    priority?: 'high' | 'medium' | 'low' | null;
   }) => {
     if (!title.trim()) {
       return;
@@ -82,6 +97,7 @@ export function TaskModal({
     setTitle("");
     setDescription("");
     setDueDate(null);
+    setPriority(null);
     onClose();
   };
 
@@ -162,6 +178,29 @@ export function TaskModal({
                 )}
               </Fragment>
             )}
+
+            <View style={styles.prioritySection}>
+              <ThemedText style={styles.priorityLabel}>Priority:</ThemedText>
+              <View style={styles.priorityButtons}>
+                {(['high', 'medium', 'low'] as const).map((p) => (
+                  <TouchableOpacity
+                    key={p}
+                    style={[
+                      styles.priorityButton,
+                      priority === p && { backgroundColor: getPriorityColor(p) }
+                    ]}
+                    onPress={() => setPriority(priority === p ? null : p)}
+                  >
+                    <ThemedText style={[
+                      styles.priorityButtonText,
+                      priority === p && styles.priorityButtonTextSelected
+                    ]}>
+                      {p.charAt(0).toUpperCase() + p.slice(1)}
+                    </ThemedText>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
           </ScrollView>
 
           <View style={styles.buttonContainer}>
@@ -177,6 +216,7 @@ export function TaskModal({
                 title,
                 description: isSubtask ? '' : description,
                 due_date: isSubtask ? null : dueDate,
+                priority,
                 parent_id: parentTask?.id || null,
               })}
               disabled={!title.trim()}
@@ -269,5 +309,32 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     marginBottom: 20,
+  },
+  prioritySection: {
+    marginBottom: 16,
+  },
+  priorityLabel: {
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  priorityButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  priorityButton: {
+    flex: 1,
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+  },
+  priorityButtonText: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  priorityButtonTextSelected: {
+    color: 'white',
+    fontWeight: '600',
   },
 });

@@ -21,4 +21,5 @@ export interface Task {
   order: number;
   depth: number;
   subtasks?: Task[];
+  priority: 'high' | 'medium' | 'low' | null;
 } 

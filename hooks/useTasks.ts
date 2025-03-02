@@ -13,6 +13,7 @@ export function useTasks() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFilter, setSelectedFilter] = useState<Task['status'] | 'all'>('all');
+  const [sortBy, setSortBy] = useState<'due_date' | 'priority' | 'created'>('created');
   const { session } = useAuth();
 
   useEffect(() => {
@@ -40,6 +41,7 @@ export function useTasks() {
     title: string;
     description: string;
     due_date: Date | null;
+    priority: 'high' | 'medium' | 'low' | null;
     parent_id?: string | null;
   }) => {
     try {
@@ -55,6 +57,7 @@ export function useTasks() {
           has_subtasks: false,
           order: 0,
           depth: taskData.parent_id ? 1 : 0,
+          priority: taskData.priority || null,
         })
         .select()
         .single();
@@ -79,6 +82,7 @@ export function useTasks() {
     title: string;
     description: string;
     due_date: Date | null;
+    priority: 'high' | 'medium' | 'low' | null;
   }) => {
     try {
       const { error } = await supabase
@@ -87,6 +91,7 @@ export function useTasks() {
           title: taskData.title,
           description: taskData.description || null,
           due_date: taskData.due_date?.toISOString() || null,
+          priority: taskData.priority || null,
         })
         .eq('id', taskData.id);
 
@@ -175,7 +180,53 @@ export function useTasks() {
     { all: 0, pending: 0, in_progress: 0, completed: 0 } as Record<Task['status'] | 'all', number>
   );
 
-  // Modify the task grouping to nest subtasks under their parents
+  // Helper function to compare tasks by priority
+  const comparePriority = (a: Task, b: Task) => {
+    const priorityOrder = { high: 0, medium: 1, low: 2, null: 3 };
+    const aPriority = a.priority || 'null';
+    const bPriority = b.priority || 'null';
+    return priorityOrder[aPriority] - priorityOrder[bPriority];
+  };
+
+  // Helper function to compare tasks by due date
+  const compareDueDate = (a: Task, b: Task) => {
+    // Tasks without due dates should go to the end
+    if (!a.due_date && !b.due_date) return 0;
+    if (!a.due_date) return 1;  // a goes after b
+    if (!b.due_date) return -1; // b goes after a
+
+    // Parse dates and normalize to UTC to avoid timezone issues
+    const dateA = new Date(a.due_date);
+    const dateB = new Date(b.due_date);
+    
+    // Set both dates to UTC midnight
+    const timeA = Date.UTC(
+      dateA.getFullYear(),
+      dateA.getMonth(),
+      dateA.getDate()
+    );
+    const timeB = Date.UTC(
+      dateB.getFullYear(),
+      dateB.getMonth(),
+      dateB.getDate()
+    );
+
+    return timeA - timeB;  // Earlier dates come first
+  };
+
+  const sortTasks = (tasksToSort: Task[]) => {
+    switch (sortBy) {
+      case 'priority':
+        return [...tasksToSort].sort(comparePriority);
+      case 'due_date':
+        return [...tasksToSort].sort(compareDueDate);
+      default:
+        return [...tasksToSort].sort((a, b) => 
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+    }
+  };
+
   const organizeTasksWithSubtasks = (tasks: Task[]): Task[] => {
     const taskMap = new Map<string, Task & { subtasks?: Task[] }>();
     const rootTasks: (Task & { subtasks?: Task[] })[] = [];
@@ -196,20 +247,17 @@ export function useTasks() {
       }
     });
 
-    // Sort root tasks and subtasks by creation date
-    rootTasks.sort((a, b) => 
-      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    );
-
-    rootTasks.forEach(task => {
-      if (task.subtasks) {
-        task.subtasks.sort((a, b) => 
-          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-        );
+    // Sort root tasks and their subtasks
+    const sortedRootTasks = sortTasks(rootTasks);
+    
+    // Sort subtasks for each root task
+    sortedRootTasks.forEach(task => {
+      if (task.subtasks?.length) {
+        task.subtasks = sortTasks(task.subtasks);
       }
     });
 
-    return rootTasks;
+    return sortedRootTasks;
   };
 
   const filteredAndGroupedTasks = useMemo(() => {
@@ -236,7 +284,7 @@ export function useTasks() {
       const order = ['in_progress', 'pending', 'completed'];
       return order.indexOf(a.title as Task['status']) - order.indexOf(b.title as Task['status']);
     });
-  }, [tasks, selectedFilter]);
+  }, [tasks, selectedFilter, sortBy]);
 
   return {
     tasks,
@@ -249,5 +297,7 @@ export function useTasks() {
     handleDeleteTask,
     selectedFilter,
     setSelectedFilter,
+    sortBy,
+    setSortBy,
   };
 } 
