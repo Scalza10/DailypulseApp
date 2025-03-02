@@ -8,6 +8,7 @@ import { TaskSummary } from '@/components/tasks/TaskSummary';
 import { useAuth } from '@/context/auth';
 import { supabase } from '@/lib/supabase';
 import { Task } from '@/types/database';
+import { WeatherCard } from '@/components/weather/WeatherCard';
 
 export default function DashboardScreen() {
   const { session, signOut } = useAuth();
@@ -63,13 +64,8 @@ export default function DashboardScreen() {
         </ThemedText>
       </View>
 
-      <View style={[styles.section, styles.card, isDark && styles.cardDark]}>
-        <ThemedText style={[styles.cardTitle, isDark && styles.cardTitleDark]}>
-          Weather
-        </ThemedText>
-        <ThemedText style={[styles.cardText, isDark && styles.cardTextDark]}>
-          Weather information coming soon...
-        </ThemedText>
+      <View style={styles.section}>
+        <WeatherCard isDark={isDark} />
       </View>
 
       <View style={styles.section}>
