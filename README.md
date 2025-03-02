@@ -1,50 +1,128 @@
-# Welcome to your Expo app 👋
+# Productivity App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A minimalist productivity application that combines focused task management with real-time weather and stock market insights. The app will feature an AI-powered task manager and dedicated focus mode to enhance user productivity. Weekend project to learn React Native and Expo.
 
-## Get started
+## ✅ Implemented Features
 
-1. Install dependencies
+### Authentication
+- Email-based registration and login
+- Secure authentication system
+- Protected routes
 
+### Task Management
+- Create, edit, and delete tasks
+- Task status management (pending, in progress, completed)
+- Priority levels (high, medium, low)
+- Advanced search and filtering
+- Subtasks with progress tracking
+- Recurring tasks
+- Task organization and hierarchy
+
+### Focus Mode
+- Focus session timer
+- Break timer
+- Notification controls
+- Session tracking
+
+### Weather Integration
+- Real-time weather updates
+- Location-based forecasting
+- Temperature unit conversion (°C/°F)
+- Detailed weather information (humidity, wind, UV index, etc.)
+- Weather alerts
+
+## 🚧 Upcoming Features
+
+### Focus Mode Enhancements
+- Session history view
+- Focus session analytics
+
+### Stock Market Integration
+- Live market updates
+- User-selected stocks tracking
+- Detailed stock analysis
+
+### AI Assistant Integration
+- Task suggestions
+- Task optimization
+- AI metadata analysis
+
+### Additional Enhancements
+- Offline functionality
+- Data caching
+- Task analytics and trends
+- Drag-and-drop task organization
+- Task reminders
+- Detailed weather view
+- Weather caching
+
+## Getting Started
+
+1. Set up environment variables:
+   Create a `.env` file with the following:
+   ```env
+   EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
+   EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
+   EXPO_PUBLIC_WEATHER_API_KEY=your_openweathermap_key
+   ```
+
+2. Set up the database:
+   Run the following SQL queries in your Supabase SQL editor in order:
+   - `queries/01_create_users_table.sql`: Creates the users table with authentication
+   - `queries/02_create_tasks_table.sql`: Creates the tasks table with all features
+
+3. Install dependencies:
    ```bash
    npm install
    ```
 
-2. Start the app
-
+4. Start the development server:
    ```bash
-    npx expo start
+   npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+## Database Schema
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### Users Table
+- Handles user authentication and profiles
+- Includes email and timestamps
+- Protected with Row Level Security
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+### Tasks Table
+- Stores all task-related data
+- Supports subtasks, priorities, and recurring tasks
+- Protected with Row Level Security
+- Includes automatic timestamp updates
 
-## Get a fresh project
+## Tech Stack
+- Frontend: React Native with TypeScript
+- Backend: Supabase
+- Weather Data: OpenWeatherMap API
+- UI Framework: React Native Paper
+- Navigation: Expo Router
 
-When you're ready, run:
-
-```bash
-npm run reset-project
+## Project Structure
+```
+productivity-app/
+├── app/                      # Expo Router app directory
+│   ├── (auth)/              # Authentication routes
+│   └── (tabs)/              # Main app routes
+├── components/              # Reusable components
+├── context/                 # React Context providers
+├── hooks/                   # Custom React hooks
+├── services/               # External service integrations
+├── types/                  # TypeScript definitions
+└── utils/                  # Helper functions
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Development Progress
+- Core Development (Phases 1-3): ✅ Completed
+- Weather Integration (Phase 4): ✅ Completed
+- Feature Integration (Phases 5-6): 🚧 In Progress
+- Polish & Optimization (Phase 7): 📅 Planned
 
-## Learn more
+## Contributing
+Feel free to submit issues and enhancement requests.
 
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## License
+This project is licensed under the MIT License - see the LICENSE file for details.
